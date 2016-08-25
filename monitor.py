@@ -1,25 +1,39 @@
 #!/bin/python3
 import socket
 import struct
+import pprint as pp
 
 
 def listen():
     '''
     Listens for packets and prints them
     '''
-    sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
+    sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(3))
 
     # sock.bind(('localhost', 8080))
 
     while True:
         # Parse IP info. We'll throw away the sender IP since we'll parse
         # it from the IP header anyway
-        packet, _ = sock.recvfrom(65565)
+        packet, addr = sock.recvfrom(65535)
 
-        unpacked_ip = ip_unpack(packet)
+        unpacked_eth = eth_unpack(packet)
 
-        print_packet(unpacked_ip)
-        print()
+        net_proto = unpacked_eth["protocol"]
+        trans_proto = unpacked_eth["ip_packet"]["protocol"]
+
+        # Only look at tcp/ip packets
+        if net_proto == 8 and trans_proto == 6:
+            pp.PrettyPrinter(depth=3).pprint(unpacked_eth)
+            print()
+
+
+def get_mac_addr(a):
+    '''
+    Converts a mac address from binary to a human readable format
+    '''
+    b = map('{:02x}'.format, a)
+    return ':'.join(b).upper()
 
 
 def print_packet(packet):
@@ -29,6 +43,21 @@ def print_packet(packet):
             print_packet(packet[key])
         else:
             print(str(key) + ': ' + str(packet[key]))
+
+
+def eth_unpack(packet):
+    eth_header = packet[:14]
+    eth = struct.unpack('!6s6sH', eth_header)
+    eth_proto = socket.ntohs(eth[2])
+    dest_mac = get_mac_addr(packet[0:6])
+    source_mac = get_mac_addr(packet[6:12])
+
+    return {
+        "protocol": eth_proto,
+        "dest_mac": dest_mac,
+        "source_mac": source_mac,
+        "ip_packet": ip_unpack(packet[14:])
+    }
 
 
 def ip_unpack(packet):
