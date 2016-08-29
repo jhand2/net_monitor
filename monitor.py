@@ -2,7 +2,7 @@
 import socket
 import struct
 import threading
-import datetime
+import time
 from pymongo import MongoClient
 
 stop_signal = False
@@ -30,7 +30,7 @@ def packet_dump(beginning_time):
     stats = {
         "tcp_per_second": len(tmp) / seconds,
         "start_time": beginning_time,
-        "end_time": datetime.datetime.now()
+        "end_time": time.time() * 1000
     }
     col = db.sec_stats
     col.insert_one(stats)
@@ -171,7 +171,7 @@ def _tcp_unpack(packet):
 
 
 def schedule_packet_dump(start_time):
-    now = datetime.datetime.now()
+    now = time.time() * 1000
     threading.Timer(5.0, schedule_packet_dump, (now,)).start()
     packet_dump(start_time)
 
@@ -179,5 +179,5 @@ def schedule_packet_dump(start_time):
 if __name__ == '__main__':
     t = threading.Thread(target=listen)
     t.start()
-    now = datetime.datetime.now()
+    now = time.time() * 1000
     threading.Timer(5.0, schedule_packet_dump, (now,)).start()
