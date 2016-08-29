@@ -25,7 +25,7 @@ def get_last_minute():
     for doc in cursor:
         if not docs:
             most_recent = doc["end_time"]
-        elif most_recent - (60 * 1000) < doc["start_time"]:
+        elif most_recent - (60 * 1000) > doc["start_time"]:
             break
         docs.append(doc)
     return dumps(map(remove_id, docs))
