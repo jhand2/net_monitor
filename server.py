@@ -15,11 +15,18 @@ def index():
 
 @app.route("/<path:path>")
 def serve_static(path):
+    """Serves static content"""
     return app.send_static_file(path)
 
 
 @app.route("/api/stats")
-def get_last_minute():
+def get_last_n():
+    """
+    HTTP GET
+
+    Get the last n minutes of network data (minutes passed as
+    optional param)
+    """
     minutes = request.args.get("minutes") or 1
     col = db.sec_stats
     cursor = col.find(sort=[('$natural', -1)])
@@ -30,10 +37,12 @@ def get_last_minute():
         elif most_recent - (60 * float(minutes) * 1000) > doc["start_time"]:
             break
         docs.append(doc)
+    # Removes db index and serializes data
     return dumps(map(_remove_id, docs))
 
 
 def _remove_id(d):
+    """Removes db index and returns remaining dictionary"""
     del d["_id"]
     return d
 
